@@ -1,0 +1,115 @@
+//Create flow
+CREATE (fl:Flow{name:'FL_IBGDC_openCash', processId:'CSH01', description:''})-[r:RESPONSE {processId:'CSH01'}]-> (api:API:Input {name:'APICashesOpening', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})-[rr:REQUEST {processId:'CSH01'}]->(fl)
+//Create flow
+CREATE (fl:Flow{name:'FL_IBGDC_closeCash', processId:'CSH01', description:''})-[r:RESPONSE {processId:'CSH01'}]-> (api:API:Input {name:'APICashesClosing', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})-[rr:REQUEST {processId:'CSH01'}]->(fl)
+
+//Create API Entrada
+CREATE (api1:API:Input {name:'APICashesOpening', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})
+
+//Create API Entrada
+CREATE (api1:API:Input {name:'APICashesClosing', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})
+
+//Relacion API FLOW(Entrada)
+MATCH(api:API{name:'APICashesOpening'}) 
+MATCH(flow:Flow{name:'FL_IBGDC_openCash'}) 
+CREATE (api)-[:REQUEST {processId:'CSH01'}] -> (flow)
+CREATE (flow)-[:RESPONSE {processId:'CSH01'}] -> (api)
+
+
+//Relacion API FLOW(Entrada)
+MATCH(api:API{name:'APICashesClosing'}) 
+MATCH(flow:Flow{name:'FL_IBGDC_closeCash'}) 
+CREATE (api)-[:REQUEST {processId:'CSH01'}] -> (flow)
+CREATE (flow)-[:RESPONSE {processId:'CSH01'}] -> (api)
+
+//Create API Salida/Servicio De Fondo
+CREATE (api1:API {name:'APIStoreInfo', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})
+
+//SERVICIO DE FONDO (Flow API Salida ya creados) 
+MATCH(flow:Flow{name:'FL_IBGDC_openCash'})
+MATCH(api:API{name:'APIStoreInfo'})
+CREATE (flow)-[:REQUEST {processId:'CSH01'}] -> (api)
+CREATE (api)-[:RESPONSE {processId:'CSH01'}] -> (flow)
+
+//Create API Salida/Servicio De Fondo
+CREATE (api1:API {name:'APICashStatus', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})
+
+//SERVICIO DE FONDO (Flow API Salida ya creados) 
+MATCH(flow:Flow{name:'FL_IBGDC_openCash'})
+MATCH(api:API{name:'APICashStatus'})
+CREATE (flow)-[:REQUEST {processId:'CSH01'}] -> (api)
+CREATE (api)-[:RESPONSE {processId:'CSH01'}] -> (flow)
+
+//Crear servicio de fondo(API) enlazado a Flujo ya existente
+MATCH (flw:Flow{name:'FL_IBGDC_openCash'})
+CREATE (flw)-[r:REQUEST{processId:'CSH01'}]->(api:API{name:'APICashOpen', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})-[rr:RESPONSE{processId:'CSH01'}]->(flw)
+
+//SERVICIO DE FONDO (Flow API Salida ya creados) 
+MATCH(flow:Flow{name:'FL_IBGDC_closeCash'})
+MATCH(api:API{name:'APIStoreInfo'})
+CREATE (flow)-[:REQUEST {processId:'CSH01'}] -> (api)
+CREATE (api)-[:RESPONSE {processId:'CSH01'}] -> (flow)
+
+//SERVICIO DE FONDO (Flow API Salida ya creados) 
+MATCH(flow:Flow{name:'FL_IBGDC_closeCash'})
+MATCH(api:API{name:'APICashStatus'})
+CREATE (flow)-[:REQUEST {processId:'CSH01'}] -> (api)
+CREATE (api)-[:RESPONSE {processId:'CSH01'}] -> (flow)
+
+//Crear servicio de fondo(API) enlazado a Flujo ya existente
+MATCH (flw:Flow{name:'FL_IBGDC_closeCash'})
+CREATE (flw)-[r:REQUEST{processId:'CSH01'}]->(api:API{name:'APICashClose', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})-[rr:RESPONSE{processId:'CSH01'}]->(flw)
+
+//Create FLOW
+CREATE (flow1:Flow {name:'FL_IBGDC_frontCloseAndOpenCash', processId:'CSH01', description:''})
+
+//Create API Entrada
+CREATE (api1:API:Input {name:'APICashesManagement', processId:'CSH01', system:'', oauth:'', APIConnect:'', method:'', description:''})
+
+//Crear relacion de API y Flow ya creados(Entrada)
+MATCH (flw:Flow{name:'FL_IBGDC_frontCloseAndOpenCash'}) 
+MATCH (api:API{name:'APICashesManagement'})
+CREATE (flw)-[r:RESPONSE {processId:'CSH01'}]->(api)-[rr:REQUEST {processId:'CSH01'}]->(flw)
+
+//Crear Queue(Cola)
+CREATE (queue1:Queue {name:'QUEUE.IBGDC.PROVISION.CLOSE.AND.OPEN', processId:'CSH01', system:'XWH', description:''})
+
+//Relacion Flow-Escribe->Cola ya creados (SALIDA)
+MATCH(f:Flow{name:'FL_IBGDC_frontCloseAndOpenCash'}) 
+MATCH(q:Queue{name:'QUEUE.IBGDC.PROVISION.CLOSE.AND.OPEN'})
+CREATE (f)-[:WRITE_IN {processId:'CSH01'}] -> (q)
+
+//Create FLOW
+CREATE (flow1:Flow {name:'FL_IBGDC_provisionCloseAndOpenCash', processId:'CSH01', description:''})
+
+//Relacion Cola-Lee->Flujo ya creados (ENTRADA)
+MATCH(q:Queue{name:'QUEUE.IBGDC.PROVISION.CLOSE.AND.OPEN'}) 
+MATCH(f:Flow{name:'FL_IBGDC_provisionCloseAndOpenCash'}) 
+CREATE (q)-[:READ_OF {processId:'CSH01'}] -> (f)
+
+
+//SERVICIO DE FONDO (Flow API Salida ya creados) 
+MATCH(flow:Flow{name:'FL_IBGDC_provisionCloseAndOpenCash'})
+MATCH(api:API{name:'APICashesClosing'})
+CREATE (flow)-[:REQUEST {processId:'CSH01'}] -> (api)
+CREATE (api)-[:RESPONSE {processId:'CSH01'}] -> (flow)
+
+//SERVICIO DE FONDO (Flow API Salida ya creados) 
+MATCH(flow:Flow{name:'FL_IBGDC_provisionCloseAndOpenCash'})
+MATCH(api:API{name:'APICashesOpening'})
+CREATE (flow)-[:REQUEST {processId:'CSH01'}] -> (api)
+CREATE (api)-[:RESPONSE {processId:'CSH01'}] -> (flow)
+
+//Crear Queue(Cola)
+CREATE (queue1:Queue {name:'QUEUE.IBCHAT.SEND.TELEGRAM.PUBLICADOR', processId:'CSH01', system:'XWH', description:''})
+
+//Relacion Flow-Escribe->Cola ya creados (SALIDA)
+MATCH(f:Flow{name:'FL_IBGDC_provisionCloseAndOpenCash'}) 
+MATCH(q:Queue{name:'QUEUE.IBCHAT.SEND.TELEGRAM.PUBLICADOR'})
+CREATE (f)-[:WRITE_IN {processId:'CSH01'}] -> (q)
+
+//SERVICIO DE FONDO (Flow API Salida ya creados) 
+MATCH(flow:Flow{name:'FL_IBGDC_openCash'})
+MATCH(api:API{name:'APICashStatus'})
+CREATE (flow)-[:REQUEST {processId:'CSH01'}] -> (api)
+CREATE (api)-[:RESPONSE {processId:'CSH01'}] -> (flow)
