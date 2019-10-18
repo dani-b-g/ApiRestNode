@@ -2,31 +2,40 @@ var express = require('express')
 var bodyParser=require('body-parser')
 var multer=require('multer')
 var neo4j= require('neo4j-driver').v1
+var envJSON = require('./assets/env.json');
 var http = require('http')
 
 var app = express()
 var upload=multer();
 
-// var driver = neo4j.v1.driver(
-//     'bolt://localhost:7687',
-//     neo4j.v1.auth.basic('neo4j', '12341234')
-//   )
+const port = envJSON['PORT']|| 8005;
+const dateUp = Date.now();
 
-const driver = neo4j.driver('bolt://104.196.70.182:7687', neo4j.auth.basic('ApiGeter', '12341234'))
+const driver = neo4j.driver('bolt://104.196.70.182:7687', neo4j.auth.basic(envJSON['USER'], envJSON['PASS']))
 const session = driver.session()
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended:true}))
-    
-app.get('/', (req, res) => {
-  res.status(200).send("Welcome to API REST")
-})
 
-http.createServer(app).listen(8005, () => {
-  console.log('Server start on http://localhost:8005');
+// app.get('/', (req, res) => {
+//   res.status(200).send("Welcome to API REST")
+// })
+// http.createServer(app).listen(8005, () => {
+//   console.log('Server start on http://localhost:8005');
+// });
+app.get('/', (req, res) => {
+  const today = new Date();
+
+  res.json({
+    date: today,
+    up: `${(Date.now() - dateUp)/1000} seg.`,
+  });
 });
 
-
+app.listen(port, () => {
+  console.log(`Server running on port: ${port}`);
+  console.log('Press CTRL + C to quit');
+});
 
 app.post('/data/:app',(req,res)=>{
     var data=['Flow1',req.params.app]
@@ -56,22 +65,41 @@ app.post('/flows/:app',(req,res)=>{
     })
 })
 
-
-
 app.post('/json/query', upload.array(),(req,res)=>{
   var resultado=[]
-  const query=req.body.statements.query
-  session.run(query).then(
-    result=>{
-      driver.close()
-      return result.records.map(record=>{
-        resultado.push(record.get(0))
-      })
+  if (Object.keys(req.body).length !== 0 && req.body.statements.query.length !== 0) {
+    var query=req.body.statements.query
+    session.run(query).then(
+      result=>{
+        driver.close()
+        return result.records.map(record=>{
+          resultado.push(record.get(0))
+        })
+      }
+    ).catch(()=>{
+      resultado={
+        "Error":"Error en ejecucion de Query",
+        "Query":query||'N/A'
+      }
+    }).then(()=>{
+      if (resultado.length<=0) {
+        resultado={
+          "Feed":"No hay Datos",
+          "Query":query||'N/A'
+        }
+      }
+      if ("Error" in resultado) {
+        res.status(500).send(resultado)
+      }else{
+        res.status(200).send(resultado)
+      }
+    })
+  }else{
+    resultado={
+      "Feed":"No se ha enviado ningun body",
+      "Query":'N/A'
     }
-  ).then(()=>{
-    res.send(resultado)
-    session.close()
-  })
-  
-
+    res.status(400).send(resultado)
+  }
+  session.close()
 })
