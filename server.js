@@ -67,6 +67,9 @@ app.post('/flows/:app',(req,res)=>{
 
 app.post('/json/query', upload.array(),(req,res)=>{
   var resultado=[]
+  console.log(req.headers.auth);
+  
+  if (tokenChek(req.headers.auth)) {
   if (Object.keys(req.body).length !== 0 && req.body.statements.query.length !== 0) {
     var query=req.body.statements.query
     session.run(query).then(
@@ -102,4 +105,19 @@ app.post('/json/query', upload.array(),(req,res)=>{
     res.status(400).send(resultado)
   }
   session.close()
+}else{
+  resultado={
+    "OK":false,
+    "message":"Unauthorized"
+  }
+  res.status(401).send(resultado)
+}
 })
+
+function tokenChek(tkn) {
+  if (tkn==envJSON['TOKEN']) {
+    return true
+  }else{
+    return false
+  }
+}
