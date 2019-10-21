@@ -2,16 +2,17 @@ var express = require('express')
 var bodyParser=require('body-parser')
 var multer=require('multer')
 var neo4j= require('neo4j-driver').v1
-var envJSON = require('./assets/env.json');
+require('dotenv').config();
 var http = require('http')
+
 
 var app = express()
 var upload=multer();
 
-const port = envJSON['PORT']|| 8005;
+const port = process.env.PORT|| 8005;
 const dateUp = Date.now();
 
-const driver = neo4j.driver('bolt://104.196.70.182:7687', neo4j.auth.basic(envJSON['USER'], envJSON['PASS']))
+const driver = neo4j.driver('bolt://'+process.env.IPDB+':'+process.env.DBPRT, neo4j.auth.basic(process.env.USER, process.env.PASS))
 const session = driver.session()
 
 app.use(bodyParser.json())
@@ -115,7 +116,7 @@ app.post('/json/query', upload.array(),(req,res)=>{
 })
 
 function tokenChek(tkn) {
-  if (tkn==envJSON['TOKEN']) {
+  if (tkn== process.env.TOKEN) {
     return true
   }else{
     return false
